@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bismillah Trade - Asset Tracker</title>
+    <style>
+        :root {
+            --bg-body: #121212;
+            --bg-card: #1E1E1E;
+            --bg-modal: #2C2C2C;
+            --text-main: #E0E0E0;
+            --text-muted: #A0A0A0;
+            --primary: #BB86FC;
+            --primary-variant: #3700B3;
+            --success: #03DAC6;
+            --danger: #CF6679;
+            --input-bg: #333333;
+            --border-radius: 12px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            padding: 20px;
+            padding-bottom: 100px;
+        }
+
+        /* Header */
+        .header-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #333;
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+        }
+
+        .main-header {
+            font-size: 1.5rem;
+            font-weight: 800;
+            letter-spacing: 1px;
+            color: var(--primary);
+            text-transform: uppercase;
+            text-shadow: 0 2px 10px rgba(187, 134, 252, 0.3);
+            margin: 0;
+        }
+
+        /* Tombol Data (Menu) */
+        .btn-menu {
+            background: #333;
+            border: 1px solid #444;
+            color: var(--text-main);
+            padding: 8px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+        .btn-menu:hover { background: #444; }
+
+        /* Grid Layout */
+        .grid-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        @media (min-width: 600px) {
+            .grid-container { grid-template-columns: 1fr 1fr; }
+        }
+
+        /* Card Style */
+        .coin-card {
+            background-color: var(--bg-card);
+            border-radius: var(--border-radius);
+            padding: 20px;
+            position: relative;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            border: 1px solid #333;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .coin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #333;
+        }
+
+        .coin-title-group { display: flex; flex-direction: column; }
+        .coin-name { font-size: 1.2rem; font-weight: bold; text-transform: uppercase; line-height: 1.2; }
+        .coin-date { font-size: 0.75rem; color: #666; margin-top: 4px; }
+        
+        .trade-btn {
+            background: var(--primary-variant);
+            color: #fff;
+            text-decoration: none;
+            padding: 5px 10px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            display: flex; align-items: center; gap: 5px;
+        }
+        .trade-btn:hover { background: var(--primary); }
+
+        .coin-detail { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.9rem; }
+        .coin-detail.highlight { margin-bottom: 12px; }
+        .coin-detail.total-row {
+            margin-top: 10px; padding-top: 10px; border-top: 1px dashed #444;
+            color: var(--primary); font-weight: bold;
+        }
+        .coin-detail span:first-child { color: var(--text-muted); }
+        .coin-detail span:last-child { font-weight: 600; }
+        .coin-detail.total-row span:first-child { color: var(--primary); }
+
+        /* Actions */
+        .card-actions {
+            margin-top: 15px; display: flex; gap: 10px;
+            border-top: 1px solid #333; padding-top: 10px;
+        }
+        .btn {
+            flex: 1; padding: 8px; border: none; border-radius: 6px;
+            cursor: pointer; font-weight: 600; font-size: 0.85rem;
+            transition: opacity 0.2s;
+        }
+        .btn:hover { opacity: 0.8; }
+        .btn-edit { background-color: #333; color: white; }
+        .btn-delete { background-color: rgba(207, 102, 121, 0.1); color: var(--danger); }
+
+        /* FAB */
+        .fab {
+            position: fixed; bottom: 30px; right: 30px;
+            background-color: var(--primary); color: #000;
+            width: 60px; height: 60px; border-radius: 50%;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+            cursor: pointer; border: none; z-index: 100;
+        }
+
+        /* Modal Global */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); display: none;
+            justify-content: center; align-items: center;
+            z-index: 200; padding: 20px; backdrop-filter: blur(2px);
+        }
+        .modal-overlay.active { display: flex; }
+        .modal-content {
+            background: var(--bg-modal); padding: 25px;
+            border-radius: var(--border-radius); width: 100%;
+            max-width: 400px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            animation: popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @keyframes popIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+        .modal-title { margin-bottom: 20px; font-size: 1.3rem; text-align: center; }
+        .form-group { margin-bottom: 12px; }
+        .form-group label { display: block; margin-bottom: 5px; color: var(--text-muted); font-size: 0.85rem; }
+        
+        .input-group { display: flex; gap: 8px; }
+        .input-group input { flex: 1; }
+        .form-group input {
+            width: 100%; padding: 10px; background: var(--input-bg);
+            border: 1px solid #444; border-radius: 8px;
+            color: white; outline: none;
+        }
+        .form-group input:focus { border-color: var(--primary); }
+
+        /* Tombol Copy (Edit Mode) */
+        .btn-icon {
+            padding: 0; width: 44px; background: #444;
+            border: 1px solid #555; border-radius: 8px; color: var(--text-main);
+            cursor: pointer; display: none;
+            align-items: center; justify-content: center; transition: all 0.2s;
+        }
+        .btn-icon.success { background: var(--success); color: #000; border-color: var(--success); }
+
+        .modal-actions { display: flex; gap: 10px; margin-top: 25px; }
+        .btn-submit { background-color: var(--primary); color: #000; padding: 10px; font-size: 1rem; border: none; border-radius: 8px; cursor: pointer; flex: 1;}
+        .btn-cancel { background-color: transparent; border: 1px solid #555; color: #fff; padding: 10px; border-radius: 8px; cursor: pointer; flex: 1;}
+
+        /* Data Modal Specific */
+        .data-options { display: flex; flex-direction: column; gap: 15px; }
+        .btn-option {
+            padding: 15px;
+            background: #333;
+            border: 1px solid #444;
+            border-radius: 10px;
+            color: #fff;
+            text-align: left;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            transition: background 0.2s;
+        }
+        .btn-option:hover { background: #444; border-color: var(--primary); }
+        .btn-option svg { width: 24px; height: 24px; stroke: var(--primary); }
+        .btn-option div { display: flex; flex-direction: column; }
+        .btn-option span { font-size: 1rem; font-weight: bold; }
+        .btn-option small { color: var(--text-muted); font-size: 0.8rem; }
+
+        .empty-state { text-align: center; color: var(--text-muted); margin-top: 100px; grid-column: 1 / -1; }
+    </style>
+</head>
+<body>
+
+    <div class="header-container">
+        <h1 class="main-header">Bismillah Trade</h1>
+        
+        <button class="btn-menu" onclick="openDataModal()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            Data
+        </button>
+
+        <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importData(this)">
+    </div>
+
+    <div class="grid-container" id="coinList"></div>
+
+    <button class="fab" onclick="openFormModal()">+</button>
+
+    <div class="modal-overlay" id="formModal">
+        <div class="modal-content">
+            <h2 class="modal-title" id="formModalTitle">Form Aset</h2>
+            <form id="coinForm">
+                <input type="hidden" id="coinId">
+                
+                <div class="form-group">
+                    <label>Nama Koin</label>
+                    <input type="text" id="coinName" placeholder="Contoh: SUI" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Harga Token (Per Koin)</label>
+                    <input type="text" id="coinPrice" placeholder="Contoh: 0.2" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>Harga Beli (Modal) - USD</label>
+                    <input type="number" id="coinBuyPrice" step="any" placeholder="Total dalam USD ($)" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Nilai Sekarang - USD</label>
+                    <input type="number" id="coinCurrentValue" step="any" placeholder="Total dalam USD ($)" required>
+                </div>
+
+                <div class="form-group">
+                    <label>URL Trade</label>
+                    <div class="input-group">
+                        <input type="url" id="coinUrl" placeholder="https://..." required>
+                        <button type="button" class="btn-icon" id="btnUrlAction" title="Copy URL">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-cancel" onclick="closeFormModal()">Batal</button>
+                    <button type="submit" class="btn btn-submit">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="dataModal">
+        <div class="modal-content">
+            <h2 class="modal-title">Pengaturan Data</h2>
+            <div class="data-options">
+                <button class="btn-option" onclick="exportData()">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                    <div>
+                        <span>Backup Data</span>
+                        <small>Simpan data ke file (Download)</small>
+                    </div>
+                </button>
+
+                <button class="btn-option" onclick="document.getElementById('importFile').click()">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    <div>
+                        <span>Restore Data</span>
+                        <small>Pulihkan data dari file (Upload)</small>
+                    </div>
+                </button>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-cancel" onclick="closeDataModal()">Tutup</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let coins = JSON.parse(localStorage.getItem('myCryptoCoins')) || [];
+
+        // --- EXPORT & IMPORT LOGIC ---
+        function exportData() {
+            if (coins.length === 0) {
+                alert("Tidak ada data untuk dibackup.");
+                return;
+            }
+            const dataStr = JSON.stringify(coins, null, 2);
+            const blob = new Blob([dataStr], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `bismillah-trade-${new Date().toISOString().slice(0,10)}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            closeDataModal();
+        }
+
+        function importData(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    if (Array.isArray(imported)) {
+                        if(confirm(`Ditemukan ${imported.length} data. Timpa data lama?`)) {
+                            coins = imported;
+                            renderCoins();
+                            alert("Restore berhasil!");
+                            closeDataModal();
+                        }
+                    } else {
+                        alert("Format file salah!");
+                    }
+                } catch (err) {
+                    alert("Gagal membaca file.");
+                }
+                input.value = ''; // Reset input
+            };
+            reader.readAsText(file);
+        }
+
+        // --- UTILS ---
+        const formatUSD = (num) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 }).format(num);
+        const formatDate = (ts) => {
+            if (!ts) return '';
+            return new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(ts));
+        };
+
+        // --- RENDER ---
+        function renderCoins() {
+            const container = document.getElementById('coinList');
+            container.innerHTML = '';
+            
+            if (coins.length === 0) {
+                container.innerHTML = '<div class="empty-state">Belum ada aset.<br>Klik tombol (+) untuk tambah.</div>';
+            } else {
+                coins.forEach(coin => {
+                    const buy = parseFloat(coin.buyPrice);
+                    const curr = parseFloat(coin.currentValue);
+                    const el = document.createElement('div');
+                    el.className = 'coin-card';
+                    el.innerHTML = `
+                        <div class="coin-header">
+                            <div class="coin-title-group">
+                                <span class="coin-name">${coin.name}</span>
+                                <span class="coin-date">${formatDate(coin.createdAt || Date.now())}</span>
+                            </div>
+                            <a href="${coin.url}" target="_blank" class="trade-btn">Trade ↗</a>
+                        </div>
+                        <div class="coin-detail highlight">
+                            <span>Price Coin</span> <span style="color:#fff">$${coin.tokenPrice}</span>
+                        </div>
+                        <div class="coin-detail">
+                            <span>Price Buy Coin</span> <span>${formatUSD(buy)}</span>
+                        </div>
+                        <div class="coin-detail">
+                            <span>SUI Dimiliki</span> 
+                            <span style="color: ${curr >= buy ? 'var(--success)' : 'var(--danger)'}">${formatUSD(curr)}</span>
+                        </div>
+                        <div class="coin-detail total-row">
+                            <span>Total Asset</span> <span>${formatUSD(buy + curr)}</span>
+                        </div>
+                        <div class="card-actions">
+                            <button class="btn btn-edit" onclick="editCoin('${coin.id}')">Edit</button>
+                            <button class="btn btn-delete" onclick="deleteCoin('${coin.id}')">Hapus</button>
+                        </div>
+                    `;
+                    container.appendChild(el);
+                });
+            }
+            localStorage.setItem('myCryptoCoins', JSON.stringify(coins));
+        }
+
+        // --- MODAL CONTROLS ---
+        const formModal = document.getElementById('formModal');
+        const dataModal = document.getElementById('dataModal');
+        const coinForm = document.getElementById('coinForm');
+        
+        // Form Modal (Add/Edit)
+        function openFormModal(isEdit = false) {
+            document.getElementById('formModalTitle').innerText = isEdit ? 'Edit Aset' : 'Tambah Aset';
+            formModal.classList.add('active');
+            // Tombol Copy URL hanya saat Edit
+            document.getElementById('btnUrlAction').style.display = isEdit ? 'flex' : 'none';
+        }
+        function closeFormModal() {
+            formModal.classList.remove('active');
+            coinForm.reset();
+            document.getElementById('coinId').value = '';
+        }
+
+        // Data Modal (Backup/Restore)
+        function openDataModal() { dataModal.classList.add('active'); }
+        function closeDataModal() { dataModal.classList.remove('active'); }
+
+        // --- EVENT LISTENERS ---
+        
+        // Submit Form
+        coinForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const id = document.getElementById('coinId').value;
+            const entry = {
+                id: id || Date.now().toString(),
+                createdAt: id ? undefined : Date.now(),
+                name: document.getElementById('coinName').value,
+                tokenPrice: document.getElementById('coinPrice').value,
+                buyPrice: parseFloat(document.getElementById('coinBuyPrice').value),
+                currentValue: parseFloat(document.getElementById('coinCurrentValue').value),
+                url: document.getElementById('coinUrl').value
+            };
+            if (id) {
+                const idx = coins.findIndex(c => c.id === id);
+                if (idx !== -1) coins[idx] = { ...coins[idx], ...entry };
+            } else {
+                coins.unshift(entry);
+            }
+            closeFormModal();
+            renderCoins();
+        });
+
+        // Copy URL (Edit Mode)
+        const btnUrl = document.getElementById('btnUrlAction');
+        btnUrl.addEventListener('click', async () => {
+            const txt = document.getElementById('coinUrl').value;
+            if(!txt) return;
+            try {
+                await navigator.clipboard.writeText(txt);
+                btnUrl.classList.add('success');
+                setTimeout(() => btnUrl.classList.remove('success'), 1000);
+            } catch(e){}
+        });
+
+        // Close modal on outside click
+        window.onclick = (e) => {
+            if (e.target === formModal) closeFormModal();
+            if (e.target === dataModal) closeDataModal();
+        }
+
+        // Global Funcs
+        window.editCoin = (id) => {
+            const c = coins.find(x => x.id === id);
+            if(c) {
+                document.getElementById('coinId').value = c.id;
+                document.getElementById('coinName').value = c.name;
+                document.getElementById('coinPrice').value = c.tokenPrice;
+                document.getElementById('coinBuyPrice').value = c.buyPrice;
+                document.getElementById('coinCurrentValue').value = c.currentValue;
+                document.getElementById('coinUrl').value = c.url;
+                openFormModal(true);
+            }
+        };
+        window.deleteCoin = (id) => {
+            if(confirm('Hapus aset ini?')) {
+                coins = coins.filter(x => x.id !== id);
+                renderCoins();
+            }
+        };
+
+        renderCoins();
+    </script>
+</body>
+</html>
