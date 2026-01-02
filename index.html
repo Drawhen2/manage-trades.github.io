@@ -3,125 +3,81 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Telegram OTP Generator</title>
+    <title>Login OTP Telegram</title>
     <style>
-        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background-color: #e6eff5; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        
-        .card {
-            background: white;
-            padding: 2.5rem;
-            border-radius: 15px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-            text-align: center;
-            width: 100%;
-            max-width: 400px;
-        }
-
-        h2 { color: #0088cc; margin-top: 0; }
-        p { color: #666; font-size: 0.9rem; }
-        
-        .otp-display {
-            font-size: 2.5rem;
-            font-weight: 800;
-            letter-spacing: 8px;
-            color: #222;
-            background: #f0f5f9;
-            padding: 20px;
-            border-radius: 10px;
-            margin: 1.5rem 0;
-            border: 2px dashed #0088cc;
-        }
-
-        button {
-            background-color: #0088cc;
-            color: white;
-            border: none;
-            padding: 15px 25px;
-            border-radius: 8px;
-            cursor: pointer;
-            width: 100%;
-            font-size: 1.1rem;
-            font-weight: bold;
-            transition: all 0.3s ease;
-        }
-
-        button:hover { background-color: #0077b5; transform: translateY(-2px); }
-        button:active { transform: translateY(0); }
-        button:disabled { background-color: #ccc; cursor: not-allowed; }
-
-        .status { margin-top: 1.2rem; font-weight: 500; }
-        .success { color: #28a745; }
-        .error { color: #dc3545; }
+        * { box-sizing: border-box; font-family: 'Arial', sans-serif; }
+        body { background: #f0f2f5; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .login-box { background: white; padding: 30px; border-radius: 12px; shadow: 0 10px 20px rgba(0,0,0,0.1); width: 350px; text-align: center; }
+        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 6px; font-size: 16px; }
+        button { width: 100%; padding: 12px; background: #0088cc; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #0077b5; }
+        .hidden { display: none; }
+        #status { margin-top: 15px; font-size: 14px; }
     </style>
 </head>
 <body>
 
-<div class="card">
-    <h2>OTP Generator</h2>
-    <p>Klik tombol di bawah untuk mengirim kode verifikasi ke Telegram Anda.</p>
+<div class="login-box">
+    <h2 style="color: #0088cc;">Login</h2>
     
-    <div class="otp-display" id="otpBox">------</div>
-    
-    <button onclick="generateAndSend()" id="btnSend">Kirim Kode OTP</button>
-    
-    <div class="status" id="statusMsg"></div>
+    <div id="step1">
+        <p>Masukkan Nomor HP Anda</p>
+        <input type="tel" id="phone" placeholder="Contoh: 081234567xxx">
+        <button onclick="sendOTP()">Kirim Kode OTP</button>
+    </div>
+
+    <div id="step2" class="hidden">
+        <p>Masukkan 6 digit kode yang dikirim ke Telegram Anda</p>
+        <input type="number" id="otpInput" placeholder="000000">
+        <button onclick="verifyOTP()">Verifikasi & Login</button>
+    </div>
+
+    <div id="status"></div>
 </div>
 
 <script>
-    // --- KONFIGURASI ---
     const TELEGRAM_TOKEN = '8259846784:AAGtstVZv6ZNZmjn4KQTcxeUs1KhByM1-SM';
-    
-    // GANTI angka di bawah ini dengan Chat ID Anda (dapat dari @userinfobot)
-    const CHAT_ID = 'MASUKKAN_CHAT_ID_DISINI'; 
+    const CHAT_ID = 'MASUKKAN_CHAT_ID_ANDA'; // Ganti dengan ID Anda
+    let generatedOTP = "";
 
-    function generateAndSend() {
-        const btn = document.getElementById('btnSend');
-        const statusMsg = document.getElementById('statusMsg');
-        const otpBox = document.getElementById('otpBox');
+    function sendOTP() {
+        const phone = document.getElementById('phone').value;
+        if(phone.length < 10) return alert("Nomor HP tidak valid");
 
-        if (CHAT_ID === 'MASUKKAN_CHAT_ID_DISINI') {
-            alert('Harap isi CHAT_ID Anda terlebih dahulu di dalam kode!');
-            return;
-        }
-
-        // 1. Buat 6 digit angka acak
-        const otp = Math.floor(100000 + Math.random() * 900000);
+        // Buat OTP 6 digit
+        generatedOTP = Math.floor(100000 + Math.random() * 900000).toString();
         
-        // 2. Tampilkan di layar
-        otpBox.innerText = otp;
-        btn.disabled = true;
-        statusMsg.innerText = "⏳ Mengirim ke Telegram...";
-        statusMsg.className = "status";
+        document.getElementById('status').innerText = "⏳ Mengirim kode...";
 
-        // 3. Kirim ke API Telegram
-        const message = `🔐 *KODE OTP ANDA*\n\nKode: \`${otp}\` \n\nJangan berikan kode ini kepada siapapun.`;
-        const url = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`;
+        const pesan = `🔐 *KODE LOGIN*\n\nSeseorang mencoba login dengan nomor: ${phone}\n\nKode OTP Anda: \`${generatedOTP}\``;
 
-        fetch(url, {
+        fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 chat_id: CHAT_ID,
-                text: message,
+                text: pesan,
                 parse_mode: 'Markdown'
             })
-        })
-        .then(response => {
-            if (response.ok) {
-                statusMsg.innerText = "✅ OTP Berhasil Dikirim!";
-                statusMsg.className = "status success";
-            } else {
-                throw new Error();
+        }).then(res => {
+            if(res.ok) {
+                document.getElementById('step1').classList.add('hidden');
+                document.getElementById('step2').classList.remove('hidden');
+                document.getElementById('status').innerText = "✅ Kode telah dikirim!";
+                document.getElementById('status').style.color = "green";
             }
-        })
-        .catch(err => {
-            statusMsg.innerText = "❌ Gagal mengirim. Cek Chat ID atau koneksi.";
-            statusMsg.className = "status error";
-        })
-        .finally(() => {
-            btn.disabled = false;
         });
+    }
+
+    function verifyOTP() {
+        const inputUser = document.getElementById('otpInput').value;
+        if(inputUser === generatedOTP) {
+            alert("Login Berhasil! Selamat datang.");
+            window.location.reload(); // Reset halaman
+        } else {
+            document.getElementById('status').innerText = "❌ Kode salah, silakan coba lagi.";
+            document.getElementById('status').style.color = "red";
+        }
     }
 </script>
 
