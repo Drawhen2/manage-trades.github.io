@@ -5,97 +5,123 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Telegram OTP Generator</title>
     <style>
-        * { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
-        body { background-color: #f4f7f9; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #e6eff5; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
         
         .card {
             background: white;
-            padding: 2rem;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            padding: 2.5rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
             text-align: center;
-            width: 350px;
+            width: 100%;
+            max-width: 400px;
         }
 
-        h2 { color: #0088cc; margin-bottom: 1rem; }
+        h2 { color: #0088cc; margin-top: 0; }
+        p { color: #666; font-size: 0.9rem; }
         
         .otp-display {
-            font-size: 2rem;
-            font-weight: bold;
-            letter-spacing: 5px;
-            color: #333;
-            background: #eef2f5;
-            padding: 10px;
-            border-radius: 8px;
-            margin-bottom: 1.5rem;
-            min-height: 50px;
+            font-size: 2.5rem;
+            font-weight: 800;
+            letter-spacing: 8px;
+            color: #222;
+            background: #f0f5f9;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 1.5rem 0;
+            border: 2px dashed #0088cc;
         }
 
         button {
             background-color: #0088cc;
             color: white;
             border: none;
-            padding: 12px 20px;
-            border-radius: 6px;
+            padding: 15px 25px;
+            border-radius: 8px;
             cursor: pointer;
             width: 100%;
-            font-size: 1rem;
-            transition: background 0.3s;
+            font-size: 1.1rem;
+            font-weight: bold;
+            transition: all 0.3s ease;
         }
 
-        button:hover { background-color: #0077b5; }
-        button:disabled { background-color: #ccc; }
+        button:hover { background-color: #0077b5; transform: translateY(-2px); }
+        button:active { transform: translateY(0); }
+        button:disabled { background-color: #ccc; cursor: not-allowed; }
 
-        .status { margin-top: 1rem; font-size: 0.9rem; color: #666; }
+        .status { margin-top: 1.2rem; font-weight: 500; }
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <h2>Telegram OTP</h2>
-    <div class="otp-display" id="otpBox">- - - - - -</div>
-    <button onclick="generateAndSend()" id="btnSend">Kirim OTP ke Telegram</button>
-    <p class="status" id="statusMsg"></p>
+    <h2>OTP Generator</h2>
+    <p>Klik tombol di bawah untuk mengirim kode verifikasi ke Telegram Anda.</p>
+    
+    <div class="otp-display" id="otpBox">------</div>
+    
+    <button onclick="generateAndSend()" id="btnSend">Kirim Kode OTP</button>
+    
+    <div class="status" id="statusMsg"></div>
 </div>
 
 <script>
     // --- KONFIGURASI ---
-    const TELEGRAM_TOKEN = 'MASUKKAN_TOKEN_BOT_ANDA';
-    const CHAT_ID = 'MASUKKAN_CHAT_ID_ANDA';
+    const TELEGRAM_TOKEN = '8259846784:AAGtstVZv6ZNZmjn4KQTcxeUs1KhByM1-SM';
+    
+    // GANTI angka di bawah ini dengan Chat ID Anda (dapat dari @userinfobot)
+    const CHAT_ID = 'MASUKKAN_CHAT_ID_DISINI'; 
 
     function generateAndSend() {
         const btn = document.getElementById('btnSend');
         const statusMsg = document.getElementById('statusMsg');
         const otpBox = document.getElementById('otpBox');
 
-        // 1. Generate 6 Digit Angka Random
+        if (CHAT_ID === 'MASUKKAN_CHAT_ID_DISINI') {
+            alert('Harap isi CHAT_ID Anda terlebih dahulu di dalam kode!');
+            return;
+        }
+
+        // 1. Buat 6 digit angka acak
         const otp = Math.floor(100000 + Math.random() * 900000);
+        
+        // 2. Tampilkan di layar
         otpBox.innerText = otp;
-
-        // 2. Siapkan Data untuk API Telegram
         btn.disabled = true;
-        statusMsg.innerText = "Sedang mengirim...";
+        statusMsg.innerText = "⏳ Mengirim ke Telegram...";
+        statusMsg.className = "status";
 
-        const message = `Kode OTP Anda adalah: ${otp}`;
-        const url = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(message)}`;
+        // 3. Kirim ke API Telegram
+        const message = `🔐 *KODE OTP ANDA*\n\nKode: \`${otp}\` \n\nJangan berikan kode ini kepada siapapun.`;
+        const url = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`;
 
-        // 3. Kirim menggunakan Fetch API
-        fetch(url)
-            .then(response => {
-                if (response.ok) {
-                    statusMsg.style.color = "green";
-                    statusMsg.innerText = "OTP Berhasil dikirim!";
-                } else {
-                    throw new Error("Gagal mengirim");
-                }
+        fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                chat_id: CHAT_ID,
+                text: message,
+                parse_mode: 'Markdown'
             })
-            .catch(err => {
-                statusMsg.style.color = "red";
-                statusMsg.innerText = "Error: Pastikan Token & Chat ID benar.";
-            })
-            .finally(() => {
-                btn.disabled = false;
-            });
+        })
+        .then(response => {
+            if (response.ok) {
+                statusMsg.innerText = "✅ OTP Berhasil Dikirim!";
+                statusMsg.className = "status success";
+            } else {
+                throw new Error();
+            }
+        })
+        .catch(err => {
+            statusMsg.innerText = "❌ Gagal mengirim. Cek Chat ID atau koneksi.";
+            statusMsg.className = "status error";
+        })
+        .finally(() => {
+            btn.disabled = false;
+        });
     }
 </script>
 
