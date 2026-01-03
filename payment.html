@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Konfirmasi Pembayaran</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { background-color: #F5F5F5; font-family: 'Inter', sans-serif; margin: 0; padding: 0; }
+        .header { background: white; padding: 15px; text-align: center; border-bottom: 1px solid #eee; font-weight: 600; position: relative; }
+        .back-btn { position: absolute; left: 15px; top: 15px; text-decoration: none; color: #333; }
+        
+        .content { padding: 20px; }
+        .merchant-section { background: white; padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 20px; }
+        .merchant-avatar { width: 60px; height: 60px; background: #FFECE0; border-radius: 50%; margin: 0 auto 10px; display: flex; align-items: center; justify-content: center; font-size: 24px; color: #FA6400; font-weight: bold; }
+        .merchant-name { font-weight: 600; font-size: 18px; margin-bottom: 5px; }
+        .bank-label { font-size: 12px; color: #888; background: #eee; padding: 4px 8px; border-radius: 4px; display: inline-block; }
+
+        .input-group { background: white; padding: 15px; border-radius: 12px; margin-bottom: 20px; }
+        .label { font-size: 12px; color: #888; margin-bottom: 5px; }
+        .amount-display { font-size: 24px; font-weight: 700; color: #333; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 10px; }
+        
+        .info-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 14px; }
+        .info-label { color: #888; }
+        
+        .bottom-dock { position: fixed; bottom: 0; left: 0; width: 100%; background: white; padding: 20px; box-shadow: 0 -4px 10px rgba(0,0,0,0.05); }
+        .pay-btn { background-color: #FA6400; color: white; width: 100%; border: none; padding: 15px; border-radius: 8px; font-weight: 600; font-size: 16px; cursor: pointer; }
+        .pay-btn:disabled { background-color: #ccc; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <a href="index.html" class="back-btn">✕</a>
+        Konfirmasi Pembayaran
+    </div>
+
+    <div class="content">
+        <div class="merchant-section">
+            <div class="merchant-avatar" id="avatar">T</div>
+            <div class="merchant-name" id="merchantName">Loading...</div>
+            <div class="bank-label">QRIS / SeaBank</div>
+        </div>
+
+        <div class="input-group">
+            <div class="label">Total Nominal</div>
+            <div class="amount-display" id="amountDisplay">Rp 0</div>
+            
+            <div class="info-row" style="margin-top: 15px;">
+                <span class="info-label">Biaya Admin</span>
+                <span style="color: #FA6400; font-weight: 600;">Gratis</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Catatan</span>
+                <span style="color: #333;">Transfer QR</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="bottom-dock">
+        <button class="pay-btn" onclick="processPayment()">Konfirmasi & Bayar</button>
+    </div>
+
+    <script>
+        // Ambil parameter dari URL (hasil scan)
+        const params = new URLSearchParams(window.location.search);
+        const amount = parseInt(params.get('amount'));
+        const name = params.get('name');
+
+        // Validasi
+        if(!amount || !name) {
+            alert("Data transaksi tidak valid. Kembali ke menu utama.");
+            window.location.href = 'index.html';
+        }
+
+        // Render Data
+        const formatRupiah = (number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(number);
+        
+        document.getElementById('merchantName').innerText = name;
+        document.getElementById('avatar').innerText = name.charAt(0).toUpperCase();
+        document.getElementById('amountDisplay').innerText = formatRupiah(amount);
+
+        function processPayment() {
+            // Ambil saldo saat ini
+            let currentBalance = parseInt(localStorage.getItem('seabank_balance') || 0);
+
+            if(currentBalance < amount) {
+                alert("Saldo tidak mencukupi!");
+                return;
+            }
+
+            // Kurangi Saldo
+            const newBalance = currentBalance - amount;
+            localStorage.setItem('seabank_balance', newBalance);
+
+            // Simpan riwayat simpel untuk ditampilkan di index
+            const txData = {
+                amount: amount,
+                date: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute:'2-digit'}),
+                to: name
+            };
+            localStorage.setItem('seabank_last_tx', JSON.stringify(txData));
+
+            // Simulasi loading sebentar lalu redirect
+            document.querySelector('.pay-btn').innerText = "Memproses...";
+            setTimeout(() => {
+                alert("Pembayaran Berhasil!");
+                window.location.href = 'index.html';
+            }, 1000);
+        }
+    </script>
+</body>
+</html>
