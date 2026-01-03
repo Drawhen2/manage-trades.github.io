@@ -3,198 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pembayaran QRIS</title>
+    <title>Scan QR</title>
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f5f5f5;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-        }
-
-        .phone-screen {
-            width: 100%;
-            max-width: 380px;
-            background: white;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            box-shadow: 0 0 20px rgba(0,0,0,0.1);
-        }
-
-        .header-top {
-            background-color: #fff;
-            padding: 15px;
-            border-bottom: 1px solid #eee;
-            display: flex;
-            align-items: center;
-        }
-
-        .back-btn {
-            font-size: 20px;
-            text-decoration: none;
-            color: #333;
-            margin-right: 15px;
-        }
-
-        .merchant-info {
-            padding: 30px 20px;
-            text-align: center;
-            background: linear-gradient(135deg, #cc2b5e, #753a88);
-            color: white;
-        }
-
-        .merchant-name {
-            font-size: 20px;
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-
-        .merchant-id {
-            font-size: 12px;
-            opacity: 0.8;
-        }
-
-        .input-area {
-            padding: 30px 20px;
-            flex-grow: 1;
-        }
-
-        .label {
-            font-size: 14px;
-            color: #666;
-            margin-bottom: 10px;
-            display: block;
-        }
-
-        .input-group {
-            display: flex;
-            align-items: center;
-            border-bottom: 2px solid #ddd;
-            padding-bottom: 5px;
-        }
-
-        .currency {
-            font-size: 24px;
-            font-weight: bold;
-            color: #333;
-            margin-right: 10px;
-        }
-
-        input[type="number"] {
-            border: none;
-            font-size: 32px;
-            font-weight: bold;
-            width: 100%;
-            outline: none;
-            background: transparent;
-        }
-        
-        /* Hilangkan spinner input number */
-        input::-webkit-outer-spin-button,
-        input::-webkit-inner-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
-        }
-
-        .pay-btn {
-            background-color: #cc2b5e;
-            color: white;
-            border: none;
-            width: 100%;
-            padding: 15px;
-            font-size: 16px;
-            font-weight: bold;
-            border-radius: 10px;
-            cursor: pointer;
-            margin-top: 30px;
-            transition: background 0.3s;
-        }
-
-        .pay-btn:active {
-            background-color: #a41e48;
-        }
-
-        /* Modal Pop-up Hasil (Simulasi) */
-        .success-modal {
-            display: none; /* Hidden by default */
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.5);
-            justify-content: center;
-            align-items: center;
-        }
-        .modal-content {
-            background: white;
-            padding: 30px;
-            border-radius: 15px;
-            text-align: center;
-            width: 80%;
-            max-width: 300px;
-        }
-        .check-icon {
-            color: #4CAF50;
-            font-size: 50px;
-            margin-bottom: 10px;
-        }
+        body { background: #000; margin: 0; display: flex; flex-direction: column; align-items: center; color: white; font-family: sans-serif; }
+        #reader { width: 100%; max-width: 500px; }
+        h3 { position: absolute; top: 20px; z-index: 10; background: rgba(0,0,0,0.5); padding: 5px 10px; border-radius: 10px; }
     </style>
 </head>
 <body>
-
-    <div class="phone-screen">
-        <div class="header-top">
-            <a href="index.html" class="back-btn">&larr;</a>
-            <span style="font-weight: 600;">Tagihan Pembayaran</span>
-        </div>
-
-        <div class="merchant-info">
-            <div class="merchant-name">WARUNG SEJAHTERA</div>
-            <div class="merchant-id">NMID: ID1020304050</div>
-        </div>
-
-        <div class="input-area">
-            <label class="label">Masukkan Nominal (Rupiah)</label>
-            <div class="input-group">
-                <span class="currency">Rp</span>
-                <input type="number" id="nominalInput" placeholder="0" autofocus>
-            </div>
-
-            <button class="pay-btn" onclick="simulasiBayar()">BAYAR SEKARANG</button>
-        </div>
-    </div>
-
-    <div class="success-modal" id="resultModal">
-        <div class="modal-content">
-            <div class="check-icon">&#10004;</div>
-            <h3 style="margin: 0 0 10px 0;">Pembayaran Berhasil!</h3>
-            <p style="color: #666; font-size: 14px;">Total Dibayar:</p>
-            <h2 id="displayNominal" style="margin: 0; color: #333;">Rp 0</h2>
-            <br>
-            <button onclick="window.location.href='index.html'" style="padding: 10px 20px; border:none; background:#eee; border-radius:5px; cursor:pointer;">Tutup</button>
-        </div>
-    </div>
-
+    <h3>Arahkan ke QR Kasir</h3>
+    <div id="reader"></div>
     <script>
-        // Script sederhana untuk mensimulasikan logika "Tampil Nominal"
-        function simulasiBayar() {
-            var inputVal = document.getElementById('nominalInput').value;
-            
-            if(inputVal === "" || inputVal == 0) {
-                alert("Silakan masukkan nominal yang valid!");
-                return;
+        function onScanSuccess(decodedText, decodedResult) {
+            // Jika QR terdeteksi dan berisi link ke pay.html
+            if (decodedText.includes("pay.html")) {
+                html5QrcodeScanner.clear();
+                window.location.href = decodedText; // Pindah ke halaman bayar
             }
-
-            // Format ke Rupiah
-            var formatted = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(inputVal);
-
-            // Tampilkan di modal
-            document.getElementById('displayNominal').innerText = formatted;
-            document.getElementById('resultModal').style.display = 'flex';
         }
+        let html5QrcodeScanner = new Html5QrcodeScanner(
+            "reader", { fps: 10, qrbox: 250 });
+        html5QrcodeScanner.render(onScanSuccess);
     </script>
-
 </body>
 </html>
