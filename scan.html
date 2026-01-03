@@ -3,27 +3,69 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Scan QR</title>
+    <title>Scan QR - Kamera Depan</title>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <style>
-        body { background: #000; margin: 0; display: flex; flex-direction: column; align-items: center; color: white; font-family: sans-serif; }
-        #reader { width: 100%; max-width: 500px; }
-        h3 { position: absolute; top: 20px; z-index: 10; background: rgba(0,0,0,0.5); padding: 5px 10px; border-radius: 10px; }
+        body { 
+            background: #000; 
+            margin: 0; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            color: white; 
+            font-family: sans-serif; 
+            height: 100vh;
+            justify-content: center;
+        }
+        #reader { 
+            width: 100%; 
+            max-width: 400px; 
+            border-radius: 15px;
+            overflow: hidden;
+        }
+        .info {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 20px;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
-    <h3>Arahkan ke QR Kasir</h3>
+    <h2 style="margin-bottom: 10px;">Arahkan Wajah & QR</h2>
+    
     <div id="reader"></div>
+    
+    <div class="info">Menggunakan Kamera Depan</div>
+
     <script>
         function onScanSuccess(decodedText, decodedResult) {
-            // Jika QR terdeteksi dan berisi link ke pay.html
+            // Jika QR terdeteksi dan mengandung link ke pay.html
             if (decodedText.includes("pay.html")) {
-                html5QrcodeScanner.clear();
-                window.location.href = decodedText; // Pindah ke halaman bayar
+                // Hentikan kamera agar tidak bentrok
+                html5QrcodeScanner.clear().then(() => {
+                    // Pindah ke halaman pembayaran
+                    window.location.href = decodedText;
+                }).catch(error => {
+                    console.error("Gagal menghentikan kamera", error);
+                });
             }
         }
+
+        // KONFIGURASI KAMERA DEPAN
         let html5QrcodeScanner = new Html5QrcodeScanner(
-            "reader", { fps: 10, qrbox: 250 });
+            "reader", 
+            { 
+                fps: 10, 
+                qrbox: { width: 250, height: 250 },
+                // Memaksa browser menggunakan kamera depan (user)
+                videoConstraints: {
+                    facingMode: "user" 
+                }
+            }
+        );
+        
         html5QrcodeScanner.render(onScanSuccess);
     </script>
 </body>
