@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pembayaran</title>
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f5f5f5; display: flex; justify-content: center; height: 100vh; margin: 0; padding-top: 50px; }
+        .container { background: white; width: 90%; max-width: 400px; height: fit-content; padding: 20px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        h2 { margin-top: 0; color: #333; }
+        input { width: 100%; padding: 15px; font-size: 24px; margin: 20px 0; border: 2px solid #ddd; border-radius: 10px; box-sizing: border-box; }
+        button { width: 100%; padding: 15px; background: #0066ff; color: white; border: none; font-size: 18px; border-radius: 10px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #0052cc; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>Masukkan Nominal</h2>
+        <p>Warung Simulasi</p>
+        <input type="number" id="nominal" placeholder="Rp 0">
+        <button onclick="bayar()">BAYAR SEKARANG</button>
+    </div>
+
+    <script>
+        // Ambil ID Transaksi dari URL (hasil scan QR tadi)
+        const urlParams = new URLSearchParams(window.location.search);
+        const transID = urlParams.get('id');
+
+        // Koneksi ke MQTT Broker
+        const client = mqtt.connect('wss://broker.emqx.io:8083/mqtt');
+
+        function bayar() {
+            const nominal = document.getElementById('nominal').value;
+
+            if (!nominal || nominal <= 0) {
+                Swal.fire('Error', 'Masukkan nominal yang benar', 'error');
+                return;
+            }
+
+            if (!transID) {
+                Swal.fire('Error', 'ID Transaksi tidak ditemukan (Scan ulang QR)', 'error');
+                return;
+            }
+
+            // Tampilkan Loading
+            Swal.fire({
+                title: 'Memproses...',
+                timer: 1000,
+                didOpen: () => {
+                    Swal.showLoading()
+                }
+            }).then(() => {
+                // KIRIM SINYAL KE HP 1
+                const data = JSON.stringify({ nominal: nominal });
+                client.publish(transID, data);
+
+                // Tampilkan Sukses di HP Sendiri
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Berhasil!',
+                    text: 'Pembayaran terkirim ke kasir.',
+                    confirmButtonText: 'Tutup'
+                });
+            });
+        }
+    </script>
+</body>
+</html>
