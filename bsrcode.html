@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Penerima</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        body { background-color: #FA6400; font-family: 'Inter', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .container { background: white; padding: 30px; border-radius: 16px; width: 90%; max-width: 400px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+        h2 { margin-bottom: 20px; color: #333; }
+        input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; outline: none; }
+        input:focus { border-color: #FA6400; }
+        button { background-color: #FA6400; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; width: 100%; font-size: 16px; }
+        button:hover { background-color: #e05a00; }
+        #qrcode { margin-top: 20px; display: flex; justify-content: center; }
+        .back-link { display: block; margin-top: 20px; color: #888; text-decoration: none; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Buat Tagihan QR</h2>
+        <p style="font-size: 12px; color: #666; margin-bottom: 15px;">Masukkan nominal. Scan kode ini dari menu "Scan" di Dashboard.</p>
+        
+        <input type="number" id="nominal" placeholder="Masukkan Nominal (Rp)" value="50000">
+        <input type="text" id="merchant" placeholder="Nama Penerima" value="Toko Serba Ada">
+        
+        <button onclick="generateQR()">Tampilkan QR Code</button>
+
+        <div id="qrcode"></div>
+        
+        <a href="index.html" class="back-link">Kembali ke Dashboard</a>
+    </div>
+
+    <script>
+        function generateQR() {
+            const nominal = document.getElementById('nominal').value;
+            const merchant = document.getElementById('merchant').value;
+            
+            if(!nominal) { alert("Masukkan nominal!"); return; }
+
+            const qrContainer = document.getElementById('qrcode');
+            qrContainer.innerHTML = ""; // Clear previous
+
+            // Format data JSON sederhana
+            const data = JSON.stringify({
+                type: "seabank_tf",
+                amount: parseInt(nominal),
+                name: merchant,
+                id: "TRX" + Math.floor(Math.random() * 1000000)
+            });
+
+            new QRCode(qrContainer, {
+                text: data,
+                width: 200,
+                height: 200
+            });
+        }
+        
+        // Generate otomatis saat load pertama kali
+        generateQR();
+    </script>
+</body>
+</html>
