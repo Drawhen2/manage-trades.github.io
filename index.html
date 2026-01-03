@@ -3,122 +3,83 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Scan QRIS Simulasi</title>
+    <title>Kasir QRIS (Merchant)</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #121212;
-            color: white;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-        }
-
-        .phone-screen {
-            width: 100%;
-            max-width: 380px;
-            height: 100%;
-            max-height: 800px;
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        .header {
-            padding: 20px;
-            font-size: 18px;
-            font-weight: bold;
-            text-align: center;
-            width: 100%;
-        }
-
-        /* Area Scanner */
-        .scan-area {
-            width: 280px;
-            height: 280px;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-radius: 20px;
-            position: relative;
-            margin-top: 50px;
-            overflow: hidden;
-            /* Efek Cursor agar user tahu bisa diklik */
-            cursor: pointer; 
-            background: rgba(255, 255, 255, 0.05);
-        }
-
-        /* Sudut-sudut Scanner */
-        .corner {
-            position: absolute;
-            width: 40px;
-            height: 40px;
-            border-color: #00d2d3;
-            border-style: solid;
-            border-width: 5px;
-        }
-        .tl { top: 0; left: 0; border-right: 0; border-bottom: 0; }
-        .tr { top: 0; right: 0; border-left: 0; border-bottom: 0; }
-        .bl { bottom: 0; left: 0; border-right: 0; border-top: 0; }
-        .br { bottom: 0; right: 0; border-left: 0; border-top: 0; }
-
-        /* Animasi Garis Laser */
-        .laser {
-            width: 100%;
-            height: 2px;
-            background-color: #00d2d3;
-            box-shadow: 0 0 10px #00d2d3;
-            position: absolute;
-            top: 0;
-            animation: scanLine 2s infinite linear;
-        }
-
-        @keyframes scanLine {
-            0% { top: 10%; opacity: 0; }
-            5% { opacity: 1; }
-            95% { opacity: 1; }
-            100% { top: 90%; opacity: 0; }
-        }
-
-        .instruction {
-            margin-top: 30px;
-            text-align: center;
-            color: #aaa;
-            font-size: 14px;
-        }
-
-        /* Link Wrapper agar area scan bisa diklik */
-        a {
-            text-decoration: none;
-            color: inherit;
-        }
+        body { font-family: sans-serif; background: #f0f2f5; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .card { background: white; padding: 40px; border-radius: 20px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.1); width: 300px; }
+        .status { margin-top: 20px; font-weight: bold; color: #555; }
+        
+        /* Tampilan Sukses */
+        #success-screen { display: none; flex-direction: column; align-items: center; }
+        .check { font-size: 60px; color: #4CAF50; margin-bottom: 10px; }
+        .amount { font-size: 32px; font-weight: bold; color: #333; }
     </style>
 </head>
 <body>
 
-    <div class="phone-screen">
-        <div class="header">Scan QRIS</div>
+    <div class="card">
+        <div id="qr-screen">
+            <h2 style="margin-top:0;">Warung Simulasi</h2>
+            <div id="qrcode" style="display:flex; justify-content:center; margin: 20px 0;"></div>
+            <p class="status" id="status-text">Menunggu Pembayaran...</p>
+            <p style="font-size: 12px; color: #aaa;">Scan menggunakan HP lain</p>
+        </div>
 
-        <a href="scan_qr.html">
-            <div class="scan-area">
-                <div class="corner tl"></div>
-                <div class="corner tr"></div>
-                <div class="corner bl"></div>
-                <div class="corner br"></div>
-                <div class="laser"></div>
-                
-                <div style="display:flex; justify-content:center; align-items:center; height:100%; opacity: 0.3;">
-                    <svg width="100" height="100" viewBox="0 0 24 24" fill="white"><path d="M3 3h6v6H3V3zm2 2v2h2V5H5zm8-2h6v6h-6V3zm2 2v2h2V5h-2zM3 13h6v6H3v-6zm2 2v2h2v-2H5zm13-2h3v2h-3v-2zm-3 2h2v2h-2v-2zm-3 2h2v2h-2v-2zm3 2h2v2h-2v-2zm-3-2h-3v2h3v-2zm6 2h3v2h-3v-2z"/></svg>
-                </div>
-            </div>
-        </a>
-
-        <div class="instruction">
-            Arahkan kamera ke QR Code<br>
-            <span style="font-size: 12px; color: #00d2d3;">(Klik kotak untuk simulasi scan)</span>
+        <div id="success-screen">
+            <div class="check">✔</div>
+            <h3>Pembayaran Diterima!</h3>
+            <div class="amount" id="received-amount">Rp 0</div>
+            <p style="color: #888;">Transaksi Berhasil</p>
+            <button onclick="location.reload()" style="margin-top:20px; padding:10px 20px; border:none; background:#eee; cursor:pointer; border-radius:5px;">Reset</button>
         </div>
     </div>
 
+    <script>
+        // 1. Buat ID Unik untuk transaksi ini (agar tidak bentrok dengan orang lain)
+        const transID = 'trans_' + Math.floor(Math.random() * 1000000);
+        
+        // 2. Tentukan URL untuk file pay.html (Asumsi file dalam satu folder di hosting)
+        // Kita kirim transID ke pembeli lewat QR
+        const baseUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/'));
+        const paymentUrl = `${baseUrl}/pay.html?id=${transID}`;
+
+        // 3. Generate QR Code
+        new QRCode(document.getElementById("qrcode"), {
+            text: paymentUrl,
+            width: 200, height: 200
+        });
+
+        console.log("Menunggu pembayaran untuk ID:", transID);
+
+        // 4. Koneksi ke MQTT Public (Broker Gratisan)
+        const client = mqtt.connect('wss://broker.emqx.io:8083/mqtt');
+
+        client.on('connect', function () {
+            console.log('Terhubung ke Server Pesan');
+            // Subscribe (mendengarkan) topik khusus ID kita
+            client.subscribe(transID);
+        });
+
+        // 5. Ketika pesan diterima dari HP Pembeli
+        client.on('message', function (topic, message) {
+            if (topic === transID) {
+                const data = JSON.parse(message.toString());
+                
+                // Ubah tampilan menjadi Sukses
+                document.getElementById('qr-screen').style.display = 'none';
+                document.getElementById('success-screen').style.display = 'flex';
+                
+                // Format Rupiah
+                const rupiah = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(data.nominal);
+                document.getElementById('received-amount').innerText = rupiah;
+                
+                // Mainkan suara notifikasi (opsional)
+                let audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+                audio.play().catch(e => console.log("Audio play blocked"));
+            }
+        });
+    </script>
 </body>
 </html>
