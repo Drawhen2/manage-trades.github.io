@@ -3,66 +3,144 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pembayaran</title>
+    <title>Bayar ShopeePay / QRIS</title>
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #f5f5f5; display: flex; justify-content: center; height: 100vh; margin: 0; padding-top: 50px; }
-        .container { background: white; width: 90%; max-width: 400px; height: fit-content; padding: 20px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        h2 { margin-top: 0; color: #333; }
-        input { width: 100%; padding: 15px; font-size: 24px; margin: 20px 0; border: 2px solid #ddd; border-radius: 10px; box-sizing: border-box; }
-        button { width: 100%; padding: 15px; background: #0066ff; color: white; border: none; font-size: 18px; border-radius: 10px; cursor: pointer; font-weight: bold; }
-        button:hover { background: #0052cc; }
+        body { 
+            font-family: 'Poppins', sans-serif; 
+            background: #f0f2f5; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            min-height: 100vh; 
+            margin: 0;
+            padding-bottom: 20px;
+        }
+        .header {
+            width: 100%; background: #FF5722; /* Shopee Orange */
+            color: white; padding: 15px 20px; text-align: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            display: flex; align-items: center;
+        }
+        .header .back-arrow { font-size: 24px; color: white; text-decoration: none; margin-right: 15px; }
+        .header .title { font-size: 18px; font-weight: 600; flex-grow: 1;}
+
+        .merchant-info {
+            background: white; width: 90%; max-width: 450px; 
+            padding: 25px; border-radius: 12px; margin-top: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            text-align: center;
+        }
+        .merchant-logo { width: 60px; height: 60px; border-radius: 50%; background: #eee; margin: 0 auto 10px; display: flex; justify-content: center; align-items: center; font-size: 24px; color: #666; font-weight: bold;}
+        .merchant-name { font-size: 20px; font-weight: 600; color: #333; margin-bottom: 5px; }
+        .merchant-id { font-size: 13px; color: #888; }
+
+        .input-section {
+            background: white; width: 90%; max-width: 450px; 
+            padding: 25px; border-radius: 12px; margin-top: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        }
+        .input-label { font-size: 15px; color: #666; margin-bottom: 15px; display: block; }
+        .input-group { display: flex; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 20px;}
+        .currency { font-size: 28px; font-weight: bold; color: #333; margin-right: 10px; }
+        input[type="number"] { 
+            border: none; font-size: 36px; width: 100%; outline: none; 
+            font-weight: bold; color: #333; background: transparent;
+        }
+        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+        .pay-button { 
+            width: 90%; max-width: 450px; 
+            background: #FF5722; color: white; padding: 15px; 
+            border: none; border-radius: 25px; font-size: 18px; 
+            font-weight: bold; cursor: pointer; margin-top: 30px;
+            box-shadow: 0 4px 10px rgba(255,87,34,0.4);
+            transition: transform 0.2s ease, background 0.2s ease;
+        }
+        .pay-button:active { 
+            transform: scale(0.98); 
+            background: #e64a19; 
+        }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <h2>Masukkan Nominal</h2>
-        <p>Warung Simulasi</p>
-        <input type="number" id="nominal" placeholder="Rp 0">
-        <button onclick="bayar()">BAYAR SEKARANG</button>
+    <div class="header">
+        <a href="scan.html" class="back-arrow">&larr;</a>
+        <span class="title">Pembayaran ShopeePay</span>
+    </div>
+
+    <div class="merchant-info">
+        <div class="merchant-logo">S</div>
+        <div class="merchant-name" id="merchant-name">Nama Toko</div>
+        <div class="merchant-id">QRIS ID: ********</div>
+    </div>
+
+    <div class="input-section">
+        <label for="nominal" class="input-label">Masukkan Jumlah Pembayaran</label>
+        <div class="input-group">
+            <span class="currency">Rp</span>
+            <input type="number" id="nominal" placeholder="0" autofocus>
+        </div>
+        <button class="pay-button" onclick="bayar()">Bayar Sekarang</button>
     </div>
 
     <script>
-        // Ambil ID Transaksi dari URL (hasil scan QR tadi)
         const urlParams = new URLSearchParams(window.location.search);
         const transID = urlParams.get('id');
+        const tokoName = urlParams.get('toko') || 'Merchant'; // Ambil nama toko
 
-        // Koneksi ke MQTT Broker
+        document.getElementById('merchant-name').innerText = tokoName;
+
         const client = mqtt.connect('wss://broker.emqx.io:8083/mqtt');
 
         function bayar() {
             const nominal = document.getElementById('nominal').value;
 
             if (!nominal || nominal <= 0) {
-                Swal.fire('Error', 'Masukkan nominal yang benar', 'error');
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Oops...',
+                    text: 'Masukkan nominal yang valid!',
+                    confirmButtonColor: '#FF5722'
+                });
                 return;
             }
 
-            if (!transID) {
-                Swal.fire('Error', 'ID Transaksi tidak ditemukan (Scan ulang QR)', 'error');
+            if (transID === 'manual') { // Jika input manual
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Pembayaran Diterima!',
+                    html: `Anda telah membayar <b>${new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(nominal)}</b> ke ${tokoName}.`,
+                    confirmButtonColor: '#FF5722'
+                }).then(() => {
+                    window.location.href = 'scan.html'; // Kembali ke halaman scan
+                });
                 return;
             }
-
+            
             // Tampilkan Loading
             Swal.fire({
-                title: 'Memproses...',
-                timer: 1000,
+                title: 'Memproses Pembayaran...',
+                allowOutsideClick: false,
                 didOpen: () => {
-                    Swal.showLoading()
-                }
+                    Swal.showLoading();
+                },
+                timer: 2000 // Simulasi proses 2 detik
             }).then(() => {
-                // KIRIM SINYAL KE HP 1
+                // KIRIM SINYAL KE HP KASIR (index.html)
                 const data = JSON.stringify({ nominal: nominal });
                 client.publish(transID, data);
 
-                // Tampilkan Sukses di HP Sendiri
                 Swal.fire({
                     icon: 'success',
-                    title: 'Berhasil!',
-                    text: 'Pembayaran terkirim ke kasir.',
-                    confirmButtonText: 'Tutup'
+                    title: 'Pembayaran Berhasil!',
+                    html: `Anda telah membayar <b>${new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(nominal)}</b> ke ${tokoName}.`,
+                    confirmButtonText: 'Selesai',
+                    confirmButtonColor: '#FF5722'
+                }).then(() => {
+                    window.location.href = 'scan.html'; // Kembali ke halaman scan setelah selesai
                 });
             });
         }
