@@ -29,13 +29,13 @@
         .icon-circle { width: 50px; height: 50px; background: #FFF5EE; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 8px; color: #FA6400; font-size: 20px; border: 1px solid #FFE0C2; }
         .action-label { font-size: 12px; font-weight: 500; }
 
-        /* Transaction History Placeholder */
-        .history { padding: 20px; margin-top: 10px; }
+        /* Transaction History */
+        .history { padding: 20px; margin-top: 10px; flex-grow: 1; overflow-y: auto; }
         .history-title { font-weight: 600; margin-bottom: 15px; }
         .history-item { background: white; padding: 15px; border-radius: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
         
         /* Bottom Nav */
-        .bottom-nav { margin-top: auto; background: white; padding: 10px 0; display: flex; justify-content: space-around; border-top: 1px solid #eee; }
+        .bottom-nav { background: white; padding: 10px 0; display: flex; justify-content: space-around; border-top: 1px solid #eee; }
         .nav-item { text-align: center; color: #aaa; font-size: 10px; }
         .nav-item.active { color: #FA6400; }
         .nav-icon { font-size: 20px; display: block; margin-bottom: 4px; }
@@ -46,7 +46,7 @@
     <div class="header">
         <div class="user-info">
             <span class="user-name">Halo, Pengguna</span>
-            <span>🔔</span>
+            <span onclick="resetApp()" style="cursor:pointer">⚙️</span>
         </div>
     </div>
 
@@ -79,8 +79,7 @@
 
     <div class="history">
         <div class="history-title">Riwayat Transaksi</div>
-        <div id="historyList">
-            </div>
+        <div id="historyList"></div>
     </div>
 
     <div class="bottom-nav">
@@ -96,46 +95,44 @@
     </div>
 
     <script>
-        // 1. Inisialisasi Saldo Awal jadi Rp 0
-        const initialBalance = 0; 
+        // Inisialisasi: Pastikan saldo dimulai dari 0
         let currentBalance = localStorage.getItem('seabank_balance');
-
-        // Jika belum ada data di localstorage (pertama kali buka), set 0
-        if (currentBalance === null) {
-            localStorage.setItem('seabank_balance', initialBalance);
-            currentBalance = initialBalance;
+        
+        // Logika Reset Khusus: Jika saldo adalah 1.000.000 (dari kodingan lama), paksa jadi 0
+        if (currentBalance === null || currentBalance === "1000000") {
+            localStorage.setItem('seabank_balance', 0);
+            currentBalance = 0;
         }
 
-        // Format Rupiah
         const formatRupiah = (number) => {
-            return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(number);
+            return new Intl.NumberFormat('id-ID', { 
+                style: 'currency', 
+                currency: 'IDR', 
+                minimumFractionDigits: 0 
+            }).format(number);
         }
 
-        // Variabel Status Mata (Hide/Show)
         let isBalanceVisible = true;
 
-        // Fungsi Toggle Hide/Show Saldo
         function toggleBalance() {
             const display = document.getElementById('displayBalance');
             const icon = document.getElementById('eyeIcon');
             
             if (isBalanceVisible) {
-                // Sembunyikan
                 display.innerText = "Rp •••••••";
-                icon.innerText = "🚫"; // Ikon mata dicoret/tutup
+                icon.innerText = "🙈"; 
                 isBalanceVisible = false;
             } else {
-                // Tampilkan
                 display.innerText = formatRupiah(currentBalance);
-                icon.innerText = "👁️"; // Ikon mata buka
+                icon.innerText = "👁️"; 
                 isBalanceVisible = true;
             }
         }
 
-        // Tampilkan saldo saat pertama load
+        // Jalankan fungsi tampil saldo saat load
         document.getElementById('displayBalance').innerText = formatRupiah(currentBalance);
 
-        // Load History (Optional Mock)
+        // Tampilkan Riwayat
         const historyList = document.getElementById('historyList');
         const lastTx = localStorage.getItem('seabank_last_tx');
         if(lastTx) {
@@ -143,14 +140,22 @@
             historyList.innerHTML = `
                 <div class="history-item">
                     <div>
-                        <div style="font-weight:600;">Transfer QRIS</div>
+                        <div style="font-weight:600;">Transfer ke ${txData.to}</div>
                         <div style="font-size:12px; color:#888;">${txData.date}</div>
                     </div>
-                    <div style="color: red; font-weight:600;">- ${formatRupiah(txData.amount)}</div>
+                    <div style="color: #333; font-weight:600;">- ${formatRupiah(txData.amount)}</div>
                 </div>
             `;
         } else {
-            historyList.innerHTML = '<div style="text-align:center; color:#999; font-size:12px;">Belum ada transaksi</div>';
+            historyList.innerHTML = '<div style="text-align:center; color:#999; font-size:12px; margin-top:20px;">Belum ada transaksi</div>';
+        }
+
+        // Fungsi tambahan untuk reset data jika ingin mulai dari nol lagi
+        function resetApp() {
+            if(confirm("Reset semua data dan saldo ke Rp 0?")) {
+                localStorage.clear();
+                location.reload();
+            }
         }
     </script>
 </body>
