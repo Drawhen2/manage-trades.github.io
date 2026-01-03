@@ -3,55 +3,123 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Scanner QRIS Pro</title>
+    <title>Scanner QRIS</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
-        :root { --primary-color: #00ff88; }
-        body { margin: 0; background: #000; font-family: sans-serif; color: white; height: 100vh; overflow: hidden; }
-        #reader { width: 100%; height: 100%; }
-        .ui-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; z-index: 10; pointer-events: none; }
-        .scanner-frame { position: relative; width: 260px; height: 260px; margin-top: 150px; border: 2px solid rgba(255,255,255,0.2); }
-        .laser-line { position: absolute; width: 100%; height: 3px; background: var(--primary-color); top: 0; animation: moveLaser 2s infinite ease-in-out; box-shadow: 0 0 15px var(--primary-color); }
-        @keyframes moveLaser { 0%, 100% { top: 0%; } 50% { top: 100%; } }
-        .error-msg { position: absolute; top: 20px; background: red; padding: 10px; border-radius: 5px; display: none; pointer-events: auto; }
+        :root { --shopee-orange: #ee4d2d; }
+        body { 
+            margin: 0; padding: 0; background: #000; 
+            font-family: sans-serif; color: white; 
+            height: 100vh; overflow: hidden; 
+            display: flex; flex-direction: column;
+        }
+
+        /* Container Kamera */
+        #reader { 
+            width: 100%; height: 100vh; position: fixed; top: 0; left: 0; 
+        }
+
+        /* Overlay UI */
+        .overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column; align-items: center;
+            z-index: 10; pointer-events: none;
+        }
+
+        .header {
+            width: 100%; padding: 20px; text-align: center;
+            background: rgba(0,0,0,0.6); pointer-events: auto;
+        }
+
+        /* Frame Kotak Scan */
+        .scan-box {
+            margin-top: 100px; width: 260px; height: 260px;
+            border: 2px solid rgba(255,255,255,0.3); border-radius: 15px;
+            position: relative; box-shadow: 0 0 0 1000px rgba(0,0,0,0.5);
+        }
+
+        .laser {
+            position: absolute; width: 100%; height: 3px;
+            background: var(--shopee-orange); top: 0;
+            box-shadow: 0 0 15px var(--shopee-orange);
+            animation: move 2s infinite ease-in-out;
+        }
+
+        @keyframes move {
+            0%, 100% { top: 0%; } 50% { top: 100%; }
+        }
+
+        /* Tombol Izin Kamera */
+        .footer {
+            margin-top: auto; padding: 40px 20px;
+            width: 100%; text-align: center; pointer-events: auto;
+            background: linear-gradient(transparent, rgba(0,0,0,0.8));
+        }
+
+        .btn-start {
+            background: var(--shopee-orange); color: white;
+            border: none; padding: 15px 30px; border-radius: 30px;
+            font-size: 16px; font-weight: bold; cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
     </style>
 </head>
 <body>
 
-    <div id="error" class="error-msg"></div>
     <div id="reader"></div>
 
-    <div class="ui-container">
-        <div class="scanner-frame">
-            <div class="laser-line"></div>
+    <div class="overlay">
+        <div class="header">
+            <div style="font-weight: bold; font-size: 18px;">Scan QRIS Pembayaran</div>
         </div>
-        <p style="margin-top: 20px;">Arahkan Kamera ke QR Code</p>
+
+        <div class="scan-box">
+            <div class="laser"></div>
+        </div>
+
+        <div class="footer">
+            <button id="btn-camera" class="btn-start">AKTIFKAN KAMERA</button>
+            <p style="font-size: 12px; margin-top: 15px; color: #ccc;">Pastikan memberikan izin akses kamera pada browser</p>
+        </div>
     </div>
 
     <script>
-        function onScanSuccess(decodedText) {
-            console.log("Scan Berhasil:", decodedText);
-            // Redirect jika mengandung kata pay.html
-            if (decodedText.includes("pay.html")) {
-                html5QrCode.stop().then(() => {
-                    window.location.href = decodedText;
-                });
-            }
+        const html5QrCode = new Html5Qrcode("reader");
+        const cameraBtn = document.getElementById('btn-camera');
+
+        function startScanner() {
+            const config = { 
+                fps: 15, 
+                qrbox: { width: 250, height: 250 },
+                aspectRatio: 1.0 
+            };
+
+            // Memulai kamera belakang (environment)
+            html5QrCode.start(
+                { facingMode: "environment" }, 
+                config, 
+                (decodedText) => {
+                    // Jika QR terdeteksi
+                    if (decodedText.includes("pay.html")) {
+                        // Berhenti & pindah halaman
+                        html5QrCode.stop().then(() => {
+                            window.location.href = decodedText;
+                        });
+                    }
+                }
+            )
+            .then(() => {
+                // Sembunyikan tombol jika kamera sudah aktif
+                cameraBtn.style.display = 'none';
+            })
+            .catch(err => {
+                alert("Gagal mengakses kamera. Pastikan Anda menggunakan HTTPS dan telah memberikan izin kamera.");
+                console.error(err);
+            });
         }
 
-        // Memulai Kamera Otomatis
-        const html5QrCode = new Html5Qrcode("reader");
-        const config = { fps: 15, qrbox: { width: 250, height: 250 } };
-
-        // Memaksa kamera belakang (environment)
-        html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess)
-        .catch(err => {
-            const errDiv = document.getElementById('error');
-            errDiv.style.display = 'block';
-            errDiv.innerText = "Kamera Gagal Aktif: Gunakan HTTPS atau izinkan akses kamera.";
-            console.error(err);
-        });
+        // Listener klik tombol
+        cameraBtn.addEventListener('click', startScanner);
     </script>
 </body>
 </html>
- 
