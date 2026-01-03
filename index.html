@@ -3,100 +3,132 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kasir QRIS (Shopee Style)</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+    <title>SeaBank Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Poppins', sans-serif; background: #f0f2f5; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .card { 
-            background: linear-gradient(135deg, #FF5722, #FFC107); /* Shopee gradient */
-            padding: 40px; border-radius: 20px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.1); width: 300px; 
-            color: white;
-            position: relative;
-            overflow: hidden;
-        }
-        .card::before { /* Background pattern */
-            content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20"><circle fill="%23FFFFFF" fill-opacity="0.1" cx="10" cy="10" r="1.5"/></svg>');
-            background-size: 20px 20px;
-            opacity: 0.8;
-            z-index: 0;
-        }
-        .content { position: relative; z-index: 1; }
-        h2 { margin-top:0; font-size: 24px; }
-        .status { margin-top: 20px; font-weight: 500; font-size: 18px; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+        body { background-color: #F5F5F5; color: #333; height: 100vh; display: flex; flex-direction: column; }
         
-        #qrcode { margin: 20px auto; background: white; padding: 10px; border-radius: 10px; } /* QR white background */
+        /* Header */
+        .header { background-color: #FA6400; padding: 20px; padding-bottom: 60px; color: white; border-bottom-left-radius: 20px; border-bottom-right-radius: 20px; }
+        .user-info { display: flex; justify-content: space-between; align-items: center; }
+        .user-name { font-weight: 600; font-size: 16px; }
+        
+        /* Balance Card */
+        .balance-container { margin-top: -40px; padding: 0 20px; }
+        .card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        .label { font-size: 12px; color: #888; margin-bottom: 5px; }
+        .balance-row { display: flex; align-items: center; justify-content: space-between; }
+        .balance { font-size: 24px; font-weight: 700; color: #FA6400; }
+        .eye-icon { cursor: pointer; color: #ccc; }
 
-        /* Tampilan Sukses */
-        #success-screen { display: none; flex-direction: column; align-items: center; }
-        .check { font-size: 60px; color: #4CAF50; margin-bottom: 10px; background: white; border-radius: 50%; width: 80px; height: 80px; display: flex; justify-content: center; align-items: center;}
-        .amount { font-size: 36px; font-weight: bold; color: white; text-shadow: 1px 1px 2px rgba(0,0,0,0.2); }
-        .reset-btn {
-            margin-top:25px; padding:12px 25px; border:none; 
-            background:#ffffff; color: #FF5722;
-            cursor:pointer; border-radius:25px; font-weight: bold;
-            box-shadow: 0 3px 8px rgba(0,0,0,0.2);
-            transition: transform 0.2s ease;
-        }
-        .reset-btn:active { transform: scale(0.95); }
+        /* Actions */
+        .actions { display: flex; justify-content: space-around; margin-top: 20px; }
+        .action-item { display: flex; flex-direction: column; align-items: center; cursor: pointer; text-decoration: none; color: #333; }
+        .icon-circle { width: 50px; height: 50px; background: #FFF5EE; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 8px; color: #FA6400; font-size: 20px; border: 1px solid #FFE0C2; }
+        .action-label { font-size: 12px; font-weight: 500; }
+
+        /* Transaction History Placeholder */
+        .history { padding: 20px; margin-top: 10px; }
+        .history-title { font-weight: 600; margin-bottom: 15px; }
+        .history-item { background: white; padding: 15px; border-radius: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+        
+        /* Bottom Nav */
+        .bottom-nav { margin-top: auto; background: white; padding: 10px 0; display: flex; justify-content: space-around; border-top: 1px solid #eee; }
+        .nav-item { text-align: center; color: #aaa; font-size: 10px; }
+        .nav-item.active { color: #FA6400; }
+        .nav-icon { font-size: 20px; display: block; margin-bottom: 4px; }
     </style>
 </head>
 <body>
 
-    <div class="card">
-        <div class="content">
-            <div id="qr-screen">
-                <h2 style="margin-top:0;">QRIS Warung Serba Ada</h2>
-                <div id="qrcode"></div>
-                <p class="status" id="status-text">Siap Menerima Pembayaran</p>
-                <p style="font-size: 12px; opacity: 0.9;">Scan QR untuk membayar</p>
-            </div>
+    <div class="header">
+        <div class="user-info">
+            <span class="user-name">Halo, Pengguna</span>
+            <span>🔔</span>
+        </div>
+    </div>
 
-            <div id="success-screen">
-                <div class="check">✔</div>
-                <h3 style="color: white; font-size: 24px;">Pembayaran Diterima!</h3>
-                <div class="amount" id="received-amount">Rp 0</div>
-                <p style="color: white; opacity: 0.9;">Transaksi Selesai</p>
-                <button onclick="location.reload()" class="reset-btn">Bayar Lagi</button>
+    <div class="balance-container">
+        <div class="card">
+            <div class="label">Total Saldo</div>
+            <div class="balance-row">
+                <span class="balance" id="displayBalance">Rp 0</span>
+                <span class="eye-icon">👁️</span>
+            </div>
+        </div>
+
+        <div class="actions">
+            <a href="bsrcode.html" class="action-item">
+                <div class="icon-circle">⬇️</div>
+                <span class="action-label">Terima (QR)</span>
+            </a>
+            
+            <a href="scan.html" class="action-item">
+                <div class="icon-circle">📷</div>
+                <span class="action-label">Scan/Bayar</span>
+            </a>
+            
+            <div class="action-item">
+                <div class="icon-circle">⬆️</div>
+                <span class="action-label">Transfer</span>
             </div>
         </div>
     </div>
 
+    <div class="history">
+        <div class="history-title">Riwayat Transaksi</div>
+        <div id="historyList">
+            </div>
+    </div>
+
+    <div class="bottom-nav">
+        <div class="nav-item active">
+            <span class="nav-icon">🏠</span>Beranda
+        </div>
+        <div class="nav-item">
+            <span class="nav-icon">💸</span>Bayar
+        </div>
+        <div class="nav-item">
+            <span class="nav-icon">👤</span>Saya
+        </div>
+    </div>
+
     <script>
-        const transID = 'trans_' + Math.floor(Math.random() * 1000000);
-        const baseUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/'));
-        const paymentUrl = `${baseUrl}/pay.html?id=${transID}&toko=Warung Serba Ada`; // Tambah nama toko
+        // Inisialisasi Saldo Awal jika belum ada
+        const initialBalance = 1000000; // Saldo awal 1 Juta
+        let currentBalance = localStorage.getItem('seabank_balance');
 
-        new QRCode(document.getElementById("qrcode"), {
-            text: paymentUrl,
-            width: 220, height: 220,
-            colorDark : "#000000",
-            colorLight : "#ffffff",
-            correctLevel : QRCode.CorrectLevel.H
-        });
+        if (!currentBalance) {
+            localStorage.setItem('seabank_balance', initialBalance);
+            currentBalance = initialBalance;
+        }
 
-        const client = mqtt.connect('wss://broker.emqx.io:8083/mqtt');
+        // Format Rupiah
+        const formatRupiah = (number) => {
+            return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(number);
+        }
 
-        client.on('connect', function () {
-            console.log('Terhubung ke Server Pesan');
-            client.subscribe(transID);
-        });
+        // Update UI
+        document.getElementById('displayBalance').innerText = formatRupiah(currentBalance);
 
-        client.on('message', function (topic, message) {
-            if (topic === transID) {
-                const data = JSON.parse(message.toString());
-                
-                document.getElementById('qr-screen').style.display = 'none';
-                document.getElementById('success-screen').style.display = 'flex';
-                
-                const rupiah = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(data.nominal);
-                document.getElementById('received-amount').innerText = rupiah;
-                
-                let audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-                audio.play().catch(e => console.log("Audio play blocked"));
-            }
-        });
+        // Load History (Optional Mock)
+        const historyList = document.getElementById('historyList');
+        const lastTx = localStorage.getItem('seabank_last_tx');
+        if(lastTx) {
+            const txData = JSON.parse(lastTx);
+            historyList.innerHTML = `
+                <div class="history-item">
+                    <div>
+                        <div style="font-weight:600;">Transfer QRIS</div>
+                        <div style="font-size:12px; color:#888;">${txData.date}</div>
+                    </div>
+                    <div style="color: red; font-weight:600;">- ${formatRupiah(txData.amount)}</div>
+                </div>
+            `;
+        } else {
+            historyList.innerHTML = '<div style="text-align:center; color:#999; font-size:12px;">Belum ada transaksi</div>';
+        }
     </script>
 </body>
 </html>
