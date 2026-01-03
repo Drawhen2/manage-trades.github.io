@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scan QR</title>
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <style>
+        body { background: #000; margin: 0; display: flex; flex-direction: column; align-items: center; color: white; font-family: sans-serif; }
+        #reader { width: 100%; max-width: 500px; }
+        h3 { position: absolute; top: 20px; z-index: 10; background: rgba(0,0,0,0.5); padding: 5px 10px; border-radius: 10px; }
+    </style>
+</head>
+<body>
+    <h3>Arahkan ke QR Kasir</h3>
+    <div id="reader"></div>
+    <script>
+        function onScanSuccess(decodedText, decodedResult) {
+            // Jika QR terdeteksi dan berisi link ke pay.html
+            if (decodedText.includes("pay.html")) {
+                html5QrcodeScanner.clear();
+                window.location.href = decodedText; // Pindah ke halaman bayar
+            }
+        }
+        let html5QrcodeScanner = new Html5QrcodeScanner(
+            "reader", { fps: 10, qrbox: 250 });
+        html5QrcodeScanner.render(onScanSuccess);
+    </script>
+</body>
+</html>
