@@ -3,88 +3,131 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Scan QR</title>
+    <title>Scan QR SeaBank</title>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <style>
-        body { margin: 0; padding: 0; background: black; font-family: sans-serif; overflow: hidden; }
-        #reader { width: 100%; height: 100vh; position: relative; background: black; }
+        * { box-sizing: border-box; }
+        body { 
+            margin: 0; padding: 0; background-color: #000; 
+            font-family: 'Inter', sans-serif; color: white;
+            height: 100vh; display: flex; flex-direction: column;
+        }
+
+        /* Header */
+        .header {
+            position: absolute; top: 0; left: 0; width: 100%;
+            padding: 20px; z-index: 100; display: flex; 
+            align-items: center; background: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent);
+        }
+        .back-btn { 
+            color: white; text-decoration: none; font-size: 24px; 
+            margin-right: 15px; cursor: pointer;
+        }
+
+        /* Scanner Area */
+        #reader { 
+            width: 100% !important; height: 100vh !important; 
+            border: none !important;
+        }
+        #reader video { 
+            object-fit: cover !important; 
+        }
+
+        /* UI Overlay */
+        .overlay-ui {
+            position: absolute; bottom: 0; left: 0; width: 100%;
+            background: white; border-top-left-radius: 24px; border-top-right-radius: 24px;
+            padding: 30px 20px; color: #333; z-index: 101; text-align: center;
+        }
+        .instruction { font-size: 16px; font-weight: 600; margin-bottom: 20px; }
         
-        /* Overlay Custom */
-        .overlay { position: absolute; top: 0; left: 0; width: 100%; padding: 20px; z-index: 100; display: flex; justify-content: space-between; align-items: center; box-sizing: border-box; }
-        .back-btn { color: white; text-decoration: none; font-size: 18px; font-weight: bold; text-shadow: 0 1px 3px rgba(0,0,0,0.8); background: rgba(0,0,0,0.3); padding: 8px 15px; border-radius: 20px; }
+        .upload-section {
+            border: 2px dashed #FA6400; background: #FFF5EE;
+            padding: 15px; border-radius: 12px; cursor: pointer;
+            display: flex; flex-direction: column; align-items: center;
+        }
+        .upload-section span { color: #FA6400; font-size: 14px; margin-top: 5px; font-weight: 500; }
         
-        .scan-text { position: absolute; bottom: 80px; left: 0; width: 100%; text-align: center; color: white; font-weight: 500; text-shadow: 0 1px 3px rgba(0,0,0,0.8); z-index: 100; pointer-events: none; }
-        
-        /* Menyembunyikan elemen bawaan library yang tidak perlu agar mirip native app */
-        #reader__dashboard_section_csr span, 
-        #reader__dashboard_section_swaplink { display: none !important; }
-        
-        /* Memperbaiki tampilan video agar full */
-        video { object-fit: cover !important; width: 100% !important; height: 100% !important; }
+        /* Hide default library buttons */
+        #reader__dashboard_section_csr button {
+            background-color: #FA6400 !important; color: white !important;
+            border: none !important; padding: 10px 20px !important;
+            border-radius: 8px !important; text-transform: uppercase;
+            font-weight: bold; margin-top: 10px;
+        }
     </style>
 </head>
 <body>
 
-    <div class="overlay">
-        <a href="index.html" class="back-btn">✕ Kembali</a>
+    <div class="header">
+        <a href="index.html" class="back-btn">✕</a>
+        <span style="font-weight: 600;">Scan QR</span>
     </div>
 
     <div id="reader"></div>
-    
-    <div class="scan-text">Arahkan kamera ke QR Code</div>
+
+    <div class="overlay-ui">
+        <div class="instruction">Scan Kode QR atau Upload Gambar</div>
+        
+        <label for="qr-input-file" class="upload-section">
+            <span style="font-size: 24px;">🖼️</span>
+            <span>Pilih dari Galeri / Upload Foto</span>
+            <input type="file" id="qr-input-file" accept="image/*" style="display:none">
+        </label>
+
+        <p id="error-msg" style="color: red; font-size: 12px; margin-top: 10px; display: none;">
+            Kamera tidak terdeteksi. Silakan gunakan fitur Upload Gambar.
+        </p>
+    </div>
 
     <script>
-        function onScanSuccess(decodedText, decodedResult) {
-            // Handle success
+        const html5QrCode = new Html5Qrcode("reader");
+        const fileInput = document.getElementById('qr-input-file');
+
+        // 1. Fungsi Sukses Scan
+        function handleSuccess(decodedText) {
             try {
-                // Mencoba parse JSON dari QR (format yang kita buat di bsrcode.html)
                 const data = JSON.parse(decodedText);
-                
-                if(data.amount && data.name) {
-                    // Stop kamera dan redirect
-                    html5QrcodeScanner.clear().then(_ => {
-                        const params = new URLSearchParams();
-                        params.append('amount', data.amount);
-                        params.append('name', data.name);
-                        window.location.href = `payment.html?${params.toString()}`;
-                    }).catch(error => {
-                        // Jika gagal clear, paksa redirect
-                        const params = new URLSearchParams();
-                        params.append('amount', data.amount);
-                        params.append('name', data.name);
-                        window.location.href = `payment.html?${params.toString()}`;
+                if(data.amount) {
+                    html5QrCode.stop().then(() => {
+                        window.location.href = `payment.html?amount=${data.amount}&name=${data.name}`;
+                    }).catch(() => {
+                        window.location.href = `payment.html?amount=${data.amount}&name=${data.name}`;
                     });
                 } else {
-                    alert("QR Code tidak valid atau bukan format SeaBank!");
+                    alert("QR Code bukan format SeaBank!");
                 }
             } catch (e) {
-                // Jika QR bukan JSON buatan kita
-                alert("Format QR tidak dikenali: " + decodedText);
+                alert("QR tidak dikenali: " + decodedText);
             }
         }
 
-        function onScanFailure(error) {
-            // Biarkan kosong agar tidak spam console log saat belum terdeteksi
-        }
-
-        // Konfigurasi Scanner dengan Video Constraints (FIX untuk NotReadableError)
-        // Kita meminta "environment" (kamera belakang) secara eksplisit
-        let config = { 
-            fps: 10, 
-            qrbox: { width: 250, height: 250 },
-            aspectRatio: 1.0,
-            videoConstraints: {
-                facingMode: "environment" 
-            }
-        };
-
-        let html5QrcodeScanner = new Html5QrcodeScanner(
-            "reader", 
-            config, 
-            /* verbose= */ false
-        );
+        // 2. Memulai Kamera Otomatis
+        const config = { fps: 10, qrbox: { width: 250, height: 250 } };
         
-        html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+        html5QrCode.start(
+            { facingMode: "environment" }, 
+            config, 
+            handleSuccess
+        ).catch(err => {
+            console.error("Gagal kamera:", err);
+            document.getElementById('error-msg').style.display = 'block';
+        });
+
+        // 3. Fitur Upload Gambar (Jika Kamera Gagal)
+        fileInput.addEventListener('change', e => {
+            if (e.target.files.length == 0) return;
+            const imageFile = e.target.files[0];
+            
+            html5QrCode.scanFile(imageFile, true)
+                .then(decodedText => {
+                    handleSuccess(decodedText);
+                })
+                .catch(err => {
+                    alert("Gagal membaca QR dari gambar. Pastikan gambar jelas.");
+                });
+        });
     </script>
 </body>
 </html>
